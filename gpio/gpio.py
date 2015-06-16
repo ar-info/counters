@@ -12,6 +12,7 @@ print gStartTime;
 print time.gmtime(gStartTime);
 print time.localtime(gStartTime);
 
+
 def counter(pin, puk):
 	while True:
 		input_state = GPIO.input(pin)
