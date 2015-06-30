@@ -1,21 +1,45 @@
 #!/usr/bin/env python
 
-import sys, time, threading
+import sys, time, threading, os
 from daemon3x import daemon
 import RPi.GPIO as GPIO
+import requests
 
-PIN_COUNTER_HOT  = 13
-PIN_COUNTER_COLD = 5
+
+PIN_COUNTER_HOT  = 13;
+PIN_COUNTER_COLD = 5;
+
+FILE_SAVE_TIMEOUT = 30 * 60;
+SERVER_SEND_TIMEOUT = 30 * 60;
+
+temp_files_path = "/var/local/counters/";
+
+gHotCounter = 0;
+gColdCounter = 0;
+
+gOldHotCounter = 0;
+gOldColdCounter = 0;
+
+
+if not os.path.exists(temp_files_path):
+	os.makedirs(temp_files_path)
 
 gStartTime = time.time();
 print gStartTime;
 print time.gmtime(gStartTime);
 print time.localtime(gStartTime);
 
-gHotCounter = 0;
-gColdCounter = 0;
+report_str = 'http://raevsky.com/counters/report_counter.php?time=' + str(gStartTime) + '&counter=HOT&value=' + str(gHotCounter);
+print report_str;
 
-def save_send_thread:
+r = requests.get(report_str);
+print r.status_code;
+print r.text;
+
+
+def save_send_thread():
+	while True:
+		time.sleep(FILE_SAVE_TIMEOUT);
 
 
 
@@ -24,9 +48,9 @@ def counter(pin, puk):
 		input_state = GPIO.input(pin)
 		if input_state == False:
 			if pin == PIN_COUNTER_COLD:
-				gColdCounter++;
+				gColdCounter += 1;
 			else:
-				gHotCounter++;
+				gHotCounter += 1;
 			
 			print('peton %d!' % pin)
 			while input_state == False:
