@@ -15,8 +15,25 @@ echo $mysqli->host_info . "<br>";
 echo "Hello, World!<br>"; 
 
  
-echo 'Parameters: ' . htmlspecialchars($_GET["time"]) . ' ' . htmlspecialchars($_GET["counter"]) . ' ' . htmlspecialchars($_GET["value"]);
+$req_time = htmlspecialchars($_GET["time"]);
+$req_counter = htmlspecialchars($_GET["counter"]);
+$req_value = htmlspecialchars($_GET["value"]);
+ 
+echo 'Parameters: ' . $req_time . ' ' . $req_counter . ' ' . $req_value;
 
-if ()
+if (!strcasecmp(htmlspecialchars($_GET["counter"]), "HOT")){
+	
+	$insert_str = "INSERT INTO `COUNTER_HOT`(`TIME`, `COUNT`) VALUES (\"" . gmdate("Y-m-d H:i:s", $req_time) . "\"," . $req_value . ")";
+	echo $insert_str . "<br>";
+	
+	if (!$mysqli->query($insert_str)) {
+		echo "Error insert: (" . $mysqli->errno . ") " . $mysqli->error . "<br>";
+		echo "Query string: " . $insert_str . "<br>";
+	}
+	
+} elseif (strcasecmp(htmlspecialchars($_GET["counter"]), "COLD")){
+	
+}
+
 
 ?>
