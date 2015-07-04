@@ -29,8 +29,9 @@ if (!strcasecmp(htmlspecialchars($_GET["counter"]), "HOT")){
 	if (!$mysqli->query($insert_str)) {
 		echo "Error insert: (" . $mysqli->errno . ") " . $mysqli->error . "<br>";
 		echo "Query string: " . $insert_str . "<br>";
+		http_response_code(500);
 	}
-	
+		
 } elseif (strcasecmp(htmlspecialchars($_GET["counter"]), "COLD")){
 	
 }
