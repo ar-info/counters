@@ -34,15 +34,20 @@ def send_warning_email(num_files):
 				mailhost += '.';
 			mailhost += x;
 		
-	sender = 'ar_info@inbox.ru';
-	receivers = ['ar_info@inbox.ru'];
+	sender = "ar_info@inbox.ru";
+	receivers = ["ar_info@inbox.ru"];
 
-	message = """From: Counters <ar_info@inbox.ru>
-To: Alexey <ar_info@inbox.ru>
-Subject: Counters Warning: """ + str(num_files) + " files are waiting" + """
+	subject = "Counter warning: " + str(num_files) + " files are waiting"
 
-This is a counters warning message.
-"""
+	text = "This message was sent with Python's smtplib."
+
+	message = """\
+From: Counters <%s>
+To: %s
+Subject: %s
+
+%s
+""" % (sender, ", ".join(receivers), subject, text);
 
 	s = smtplib.SMTP(mailhost);
 	s.set_debuglevel(1);
