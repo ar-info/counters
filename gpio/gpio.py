@@ -9,8 +9,14 @@ import dns.resolver
 PIN_COUNTER_HOT  = 13;
 PIN_COUNTER_COLD = 5;
 
-FILE_SAVE_TIMEOUT = 5;
-SERVER_SEND_TIMEOUT = 15 * 60;
+FILE_SAVE_SEND_TIMEOUT = 5;
+
+#SEND_EMAIL_TIMEOUT = 24 * 60 * 60 * 60;
+
+SEND_EMAIL_TIMEOUT = 50;
+
+
+NUM_FILE_LIMIT_FOR_EMAIL = SEND_EMAIL_TIMEOUT / FILE_SAVE_SEND_TIMEOUT;
 
 temp_files_path = "/var/local/counters/";
 
@@ -21,8 +27,15 @@ gOldHotCounter = 0;
 gOldColdCounter = 0;
 
 
+files = os.listdir(temp_files_path);
+		
+for f in files:
+	print f[1:] + " " + str(os.path.getctime(temp_files_path+f)); 
+
 	
 def send_warning_email(num_files):
+
+	print "send_warning_email: " + str(num_files)
 
 	domain = 'inbox.ru';
 	answers = dns.resolver.query(domain, 'MX');
@@ -34,6 +47,8 @@ def send_warning_email(num_files):
 				mailhost += '.';
 			mailhost += x;
 		
+	print domain + " " + mailhost; 
+	
 	sender = "ar_info@inbox.ru";
 	receivers = ["ar_info@inbox.ru"];
 
@@ -53,19 +68,81 @@ Subject: %s
 	s.set_debuglevel(1);
 	s.sendmail(sender, receivers, message);
 	s.quit();
-	
-	
-send_warning_email(10);	
+		
 	
 def check_internet_alive():
 
 	r1 = requests.get("http://yandex.ru");	
 	r2 = requests.get("http://google.com");
 	
-	if (r1 != 200) and (r2 != 200):
-		return false;
+	if (r1.status_code != 200) and (r2.status_code != 200):
+		return False;
 	
-	return true;
+	return True;
+	
+
+def email_thread():
+
+	print "start email thread";
+
+	while True:
+		
+		files = os.listdir(temp_files_path);
+		
+		if (len(files) > 0):
+		
+			earliest = time.time();
+		
+			for f in files:
+				if earliest > os.path.getctime(temp_files_path+f):
+					earliest = os.path.getctime(temp_files_path+f);
+			
+			print "earliest: " + str(earliest);
+			
+			if (earliest + SEND_EMAIL_TIMEOUT < time.time()) and (check_internet_alive()):
+				send_warning_email(len(files));
+				
+		time.sleep(SEND_EMAIL_TIMEOUT);
+
+	
+def save_send(counter, counter_type):
+
+	time_str = str(time.time());
+
+	if counter_type == 'H':
+		report_str = 'http://raevsky.com/counters/report_counter.php?time=' + time_str + '&counter=H&value=' + str(gHotCounter);
+		temp_file_name = temp_files_path + 'H' + time_str;	
+	elif counter_type == 'C':
+		report_str = 'http://raevsky.com/counters/report_counter.php?time=' + time_str + '&counter=C&value=' + str(gHotCounter);
+		temp_file_name = temp_files_path + 'C' + time_str;		
+	else:
+		print "save_send invalid parameter!";
+		return;
+		
+	r = requests.get(report_str);
+			
+	if r.status_code != 200:
+		print "Error report, code is " + str(r.status_code) + ". Save to file."
+		print temp_file_name;
+		f = open(temp_file_name, 'w');
+		f.write(report_str);
+		f.close();
+	else:
+		files = os.listdir(temp_files_path);
+				
+		if (len(files) > 0) and (check_internet_alive()):
+				
+			for file in files:
+				print "report file " + file;
+				temp_file_name = temp_files_path + file;
+				f = open(temp_file_name, 'r');
+				report_str = f.readline();
+				f.close();
+				r = requests.get(report_str);
+				if r.status_code == 200:
+					os.remove(temp_file_name);
+							
+				
 	
 	
 def save_send_thread():
@@ -78,62 +155,14 @@ def save_send_thread():
 	while True:
 	
 		if gColdCounter != 0:
-			report_str = 'http://raevsky.com/counters/report_counter.php?time=' + str(time.time()) + '&counter=COLD&value=' + str(gColdCounter);
-			r = requests.get(report_str);
-			
-			if r.status_code != 200:
-				temp_file_name = temp_files_path + 'C' + str(round(gColdCounter));
-				f = open(temp_file_name, 'w');
-				f.write(report_str);
-				f.close();
-			else:
-				files = os.listdir();
-				
-				for file in files:
-					temp_file_name = temp_files_path + file;
-					f.open(temp_file_name, 'r');
-					report_str = f.readline();
-					f.close();
-					r = requests.get(report_str);
-					if r.status_code == 200:
-						os.remove(temp_file_name);
-					
+			save_send(gColdCounter, 'C');
 			gColdCounter = 0;
 		
 		if gHotCounter != 0:
-			time_str = str(time.time());
-			report_str = 'http://raevsky.com/counters/report_counter.php?time=' + time_str + '&counter=HOT&value=' + str(gHotCounter);
-			r = requests.get(report_str);
-			
-			if r.status_code != 200:
-				print "Error report, code is " + str(r.status_code) + ". Save to file."
-				temp_file_name = temp_files_path + 'H' + time_str;
-				print temp_file_name;
-				f = open(temp_file_name, 'w');
-				f.write(report_str);
-				f.close();
-			else:
-				files = os.listdir(temp_files_path);
-				
-				if (len(files) > 0) and (check_internet_alive()):
-				
-					for file in files:
-						print "report file " + file;
-						temp_file_name = temp_files_path + file;
-						f = open(temp_file_name, 'r');
-						report_str = f.readline();
-						f.close();
-						r = requests.get(report_str);
-						if r.status_code == 200:
-							os.remove(temp_file_name);
-							
-				
-				
-					
-					
+			save_send(gHotCounter, 'H');
 			gHotCounter = 0;
 		
-		time.sleep(FILE_SAVE_TIMEOUT);
+		time.sleep(FILE_SAVE_SEND_TIMEOUT);
 
 
 
@@ -169,6 +198,9 @@ class MyDaemon(daemon):
 		
 		t3 = threading.Thread(target=save_send_thread);
 		t3.start();
+		
+		t4 = threading.Thread(target=email_thread);
+		t4.start();
 		
 		while True:
 			time.sleep(1)
