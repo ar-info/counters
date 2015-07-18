@@ -21,20 +21,24 @@ $req_value = htmlspecialchars($_GET["value"]);
  
 echo 'Parameters: ' . $req_time . ' ' . $req_counter . ' ' . $req_value;
 
-if (!strcasecmp(htmlspecialchars($_GET["counter"]), "HOT")){
+if (!strcasecmp(htmlspecialchars($_GET["counter"]), "H")){
 	
 	$insert_str = "INSERT INTO `COUNTER_HOT`(`TIME`, `COUNT`) VALUES (\"" . gmdate("Y-m-d H:i:s", $req_time) . "\"," . $req_value . ")";
 	echo $insert_str . "<br>";
-	
-	if (!$mysqli->query($insert_str)) {
-		echo "Error insert: (" . $mysqli->errno . ") " . $mysqli->error . "<br>";
-		echo "Query string: " . $insert_str . "<br>";
-		http_response_code(500);
-	}
 		
-} elseif (strcasecmp(htmlspecialchars($_GET["counter"]), "COLD")){
+} elseif (strcasecmp(htmlspecialchars($_GET["counter"]), "C")){
 	
+	$insert_str = "INSERT INTO `COUNTER_COLD`(`TIME`, `COUNT`) VALUES (\"" . gmdate("Y-m-d H:i:s", $req_time) . "\"," . $req_value . ")";
+	echo $insert_str . "<br>";
+
 }
 
+if (!$mysqli->query($insert_str)) {
+	echo "Error insert: (" . $mysqli->errno . ") " . $mysqli->error . "<br>";
+	echo "Query string: " . $insert_str . "<br>";
+	http_response_code(500);
+}
+
+http_response_code(500);
 
 ?>
