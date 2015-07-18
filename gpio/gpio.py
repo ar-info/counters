@@ -11,9 +11,9 @@ PIN_COUNTER_COLD = 5;
 
 FILE_SAVE_SEND_TIMEOUT = 5;
 
-#SEND_EMAIL_TIMEOUT = 24 * 60 * 60 * 60;
+SEND_EMAIL_TIMEOUT = 24 * 60 * 60 * 60;
 
-SEND_EMAIL_TIMEOUT = 50;
+#SEND_EMAIL_TIMEOUT = 50;
 
 
 NUM_FILE_LIMIT_FOR_EMAIL = SEND_EMAIL_TIMEOUT / FILE_SAVE_SEND_TIMEOUT;
@@ -25,12 +25,6 @@ gColdCounter = 0;
 
 gOldHotCounter = 0;
 gOldColdCounter = 0;
-
-
-files = os.listdir(temp_files_path);
-		
-for f in files:
-	print f[1:] + " " + str(os.path.getctime(temp_files_path+f)); 
 
 	
 def send_warning_email(num_files):
@@ -110,10 +104,10 @@ def save_send(counter, counter_type):
 	time_str = str(time.time());
 
 	if counter_type == 'H':
-		report_str = 'http://raevsky.com/counters/report_counter.php?time=' + time_str + '&counter=H&value=' + str(gHotCounter);
+		report_str = 'http://raevsky.com/counters/report_counter.php?time=' + time_str + '&counter=H&value=' + str(counter);
 		temp_file_name = temp_files_path + 'H' + time_str;	
 	elif counter_type == 'C':
-		report_str = 'http://raevsky.com/counters/report_counter.php?time=' + time_str + '&counter=C&value=' + str(gHotCounter);
+		report_str = 'http://raevsky.com/counters/report_counter.php?time=' + time_str + '&counter=C&value=' + str(counter);
 		temp_file_name = temp_files_path + 'C' + time_str;		
 	else:
 		print "save_send invalid parameter!";
@@ -123,6 +117,7 @@ def save_send(counter, counter_type):
 			
 	if r.status_code != 200:
 		print "Error report, code is " + str(r.status_code) + ". Save to file."
+		print r.text;
 		print temp_file_name;
 		f = open(temp_file_name, 'w');
 		f.write(report_str);
@@ -141,6 +136,9 @@ def save_send(counter, counter_type):
 				r = requests.get(report_str);
 				if r.status_code == 200:
 					os.remove(temp_file_name);
+				else:
+					print str(r.status_code);
+					print r.text;
 							
 				
 	
