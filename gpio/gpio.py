@@ -5,15 +5,16 @@ from daemon3x import daemon
 import RPi.GPIO as GPIO
 import smtplib, requests
 import dns.resolver
+import logging
+import logging.handlers
+
 
 PIN_COUNTER_HOT  = 13;
 PIN_COUNTER_COLD = 5;
 
-FILE_SAVE_SEND_TIMEOUT = 5;
+FILE_SAVE_SEND_TIMEOUT = 10*60;
 
 SEND_EMAIL_TIMEOUT = 24 * 60 * 60 * 60;
-
-#SEND_EMAIL_TIMEOUT = 50;
 
 
 NUM_FILE_LIMIT_FOR_EMAIL = SEND_EMAIL_TIMEOUT / FILE_SAVE_SEND_TIMEOUT;
@@ -26,10 +27,12 @@ gColdCounter = 0;
 gOldHotCounter = 0;
 gOldColdCounter = 0;
 
-	
+LOG_FILENAME = '/var/log/counters.log'
+
+		
 def send_warning_email(num_files):
 
-	print "send_warning_email: " + str(num_files)
+	cnt_logger.warning('Send warning email: %d files', num_files);
 
 	domain = 'inbox.ru';
 	answers = dns.resolver.query(domain, 'MX');
@@ -41,7 +44,7 @@ def send_warning_email(num_files):
 				mailhost += '.';
 			mailhost += x;
 		
-	print domain + " " + mailhost; 
+	cnt_logger.debug('Mail host for domain %s is %s', domain, mailhost); 
 	
 	sender = "ar_info@inbox.ru";
 	receivers = ["ar_info@inbox.ru"];
@@ -59,7 +62,6 @@ Subject: %s
 """ % (sender, ", ".join(receivers), subject, text);
 
 	s = smtplib.SMTP(mailhost);
-	s.set_debuglevel(1);
 	s.sendmail(sender, receivers, message);
 	s.quit();
 		
@@ -77,8 +79,6 @@ def check_internet_alive():
 
 def email_thread():
 
-	print "start email thread";
-
 	while True:
 		
 		files = os.listdir(temp_files_path);
@@ -90,9 +90,7 @@ def email_thread():
 			for f in files:
 				if earliest > os.path.getctime(temp_files_path+f):
 					earliest = os.path.getctime(temp_files_path+f);
-			
-			print "earliest: " + str(earliest);
-			
+						
 			if (earliest + SEND_EMAIL_TIMEOUT < time.time()) and (check_internet_alive()):
 				send_warning_email(len(files));
 				
@@ -110,15 +108,12 @@ def save_send(counter, counter_type):
 		report_str = 'http://raevsky.com/counters/report_counter.php?time=' + time_str + '&counter=C&value=' + str(counter);
 		temp_file_name = temp_files_path + 'C' + time_str;		
 	else:
-		print "save_send invalid parameter!";
 		return;
 		
 	r = requests.get(report_str);
 			
 	if r.status_code != 200:
-		print "Error report, code is " + str(r.status_code) + ". Save to file."
-		print r.text;
-		print temp_file_name;
+		cnt_logger.warning('Send counter to server error. Code is %d. Save to file.', r.status_code)
 		f = open(temp_file_name, 'w');
 		f.write(report_str);
 		f.close();
@@ -128,7 +123,6 @@ def save_send(counter, counter_type):
 		if (len(files) > 0) and (check_internet_alive()):
 				
 			for file in files:
-				print "report file " + file;
 				temp_file_name = temp_files_path + file;
 				f = open(temp_file_name, 'r');
 				report_str = f.readline();
@@ -137,8 +131,7 @@ def save_send(counter, counter_type):
 				if r.status_code == 200:
 					os.remove(temp_file_name);
 				else:
-					print str(r.status_code);
-					print r.text;
+					cnt_logger.warning('Error sending file %s to server. Code is %d', r.status_code);
 							
 				
 	
@@ -172,13 +165,10 @@ def counter_thread(pin, puk):
 		input_state = GPIO.input(pin)
 		if input_state == False:
 			if pin == PIN_COUNTER_COLD:
-				print "cold";
 				gColdCounter += 1;
 			else:
-				print "hot";
 				gHotCounter += 1;
 			
-			print('peton %d!' % pin);
 			while input_state == False:
 				input_state = GPIO.input(pin);
 				time.sleep(0.2);
@@ -186,7 +176,6 @@ def counter_thread(pin, puk):
 
 class MyDaemon(daemon):
 	def run(self):
-		print "run";
 		
 		t1 = threading.Thread(target=counter_thread, args=(PIN_COUNTER_HOT, 0));
 		t1.start();
@@ -202,14 +191,22 @@ class MyDaemon(daemon):
 		
 		while True:
 			time.sleep(1)
-		print "bye bye"
 			
 	def start(self):
-		print "start";
 
 		GPIO.setmode(GPIO.BCM)
 		GPIO.setup(PIN_COUNTER_COLD, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 		GPIO.setup(PIN_COUNTER_HOT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+		
+		# Set up a specific logger with desired output level
+		cnt_logger = logging.getLogger('counters')
+		cnt_logger.setLevel(logging.DEBUG)
+		loghandler = logging.handlers.RotatingFileHandler(LOG_FILENAME, maxBytes=32*1024, backupCount=4)
+		logformatter = logging.Formatter(fmt='%(asctime)s  %(message)s', datefmt='%b %d %H:%M:%S')
+		loghandler.setFormatter(logformatter)
+		cnt_logger.addHandler(loghandler)
+
+		cnt_logger.debug('Start daemon')
 		
 		daemon.start(self)
 
