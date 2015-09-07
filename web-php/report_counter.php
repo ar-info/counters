@@ -23,12 +23,12 @@ echo 'Parameters: ' . $req_time . ' ' . $req_counter . ' ' . $req_value;
 
 if (!strcasecmp(htmlspecialchars($_GET["counter"]), "H")){
 	
-	$insert_str = "INSERT INTO `COUNTER_HOT`(`TIME`, `COUNT`) VALUES (\"" . gmdate("Y-m-d H:i:s", $req_time) . "\"," . $req_value . ")";
+	$insert_str = "INSERT INTO `COUNTER_HOT`(`TIME`, `COUNT`) VALUES (\"" . date("Y-m-d H:i:s", $req_time) . "\"," . $req_value . ")";
 	echo $insert_str . "<br>";
 		
 } elseif (!strcasecmp(htmlspecialchars($_GET["counter"]), "C")){
 	
-	$insert_str = "INSERT INTO `COUNTER_COLD`(`TIME`, `COUNT`) VALUES (\"" . gmdate("Y-m-d H:i:s", $req_time) . "\"," . $req_value . ")";
+	$insert_str = "INSERT INTO `COUNTER_COLD`(`TIME`, `COUNT`) VALUES (\"" . date("Y-m-d H:i:s", $req_time) . "\"," . $req_value . ")";
 	echo $insert_str . "<br>";
 
 } else {
