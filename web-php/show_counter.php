@@ -19,7 +19,6 @@ if ($mysqli->connect_errno) {
 }
 echo $mysqli->host_info . "<br>";
 
-
 $request_str = "SELECT max(TIME) FROM `VERIFICATION`";
 $result = $mysqli->query($request_str);
 if (!$result) {
@@ -28,11 +27,12 @@ if (!$result) {
 }
 printf("Select returned %d rows\n", $result->num_rows);
 
-$last_time = mysqli_fetch_array($result, MYSQL_NUM);
-printf("Last time = %s\n", $last_time[0]);
+$last_time_array = mysqli_fetch_array($result, MYSQL_NUM);
+$last_time = $last_time_array[0];
+printf("Last time = %s\n", $last_time);
 $result->free();
 
-$request_str = "SELECT * FROM `VERIFICATION` WHERE TIME='" . $last_time[0] . "'";
+$request_str = "SELECT * FROM `VERIFICATION` WHERE TIME='" . $last_time . "'";
 $result = $mysqli->query($request_str);
 printf("result = %d\n", $result);
 if (!$result) {
@@ -95,8 +95,36 @@ $cold_limit = mysqli_fetch_array($result, MYSQL_ASSOC);
 printf("Cold limit = %f<br>", $cold_limit["VALUE"]);
 $result->free();
 
+$request_str = "SELECT SUM(COUNT) FROM `COUNTER_COLD` WHERE TIME > '" . $last_time . "'";
+$result = $mysqli->query($request_str);
+printf("result = %d\n", $result);
+if (!$result) {
+	echo "Error define last date: (" . $mysqli->errno . ") " . $mysqli->error . "<br>";
+	echo "Query string: " . $request_str . "<br>";
+}
+printf("Select returned %d rows<br>", $result->num_rows);
+$cold_counter_array = mysqli_fetch_array($result, MYSQL_NUM);
+$cold_counter_ticks = $cold_counter_array[0];
+printf("<br>Cold counter ticks = %f<br>", $cold_counter_ticks);
+$result->free();
 
+$request_str = "SELECT SUM(COUNT) FROM `COUNTER_HOT` WHERE TIME > '" . $last_time . "'";
+$result = $mysqli->query($request_str);
+printf("result = %d\n", $result);
+if (!$result) {
+	echo "Error define last date: (" . $mysqli->errno . ") " . $mysqli->error . "<br>";
+	echo "Query string: " . $request_str . "<br>";
+}
+printf("Select returned %d rows<br>", $result->num_rows);
+$hot_counter_array = mysqli_fetch_array($result, MYSQL_NUM);
+$hot_counter_ticks = $hot_counter_array[0];
+printf("Hot counter ticks = %f<br>", $hot_counter_ticks);
+$result->free();
 
+$cold_counter = $cold_counter_start_value + $cold_counter_ticks * $cold_multiplier["VALUE"];
+$hot_counter = $hot_counter_start_value + $hot_counter_ticks * $hot_multiplier["VALUE"];
+
+printf("<br><br><b>Cold counter: %f<br>Hot counter: %f</b><br>", $cold_counter, $hot_counter);
 
 mysqli_close($mysqli);
 ?>
