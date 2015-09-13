@@ -31,7 +31,7 @@ class daemon:
 			pid = os.fork() 
 			if pid > 0:
 
-				# exit from second parent
+				# exit from second  parent
 				sys.exit(0) 
 		except OSError as err: 
 			sys.stderr.write('fork #2 failed: {0}\n'.format(err))
