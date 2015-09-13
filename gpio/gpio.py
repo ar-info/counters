@@ -36,6 +36,9 @@ gColdCounter = 0;
 gOldHotCounter = 0;
 gOldColdCounter = 0;
 
+cold_counter_lock = threading.Lock();
+hot_counter_lock = threading.Lock();
+
 LOG_FILENAME = '/var/log/counters.log'
 
 		
@@ -105,6 +108,7 @@ def email_thread():
 				
 		time.sleep(SEND_EMAIL_TIMEOUT);
 
+		
 	
 def save_send(counter, counter_type):
 
@@ -156,14 +160,23 @@ def save_send_thread():
 
 	while True:
 	
-		if gColdCounter != 0:
-			save_send(gColdCounter, 'C');
-			gColdCounter = 0;
+		counter = 0;
+		with cold_counter_lock:
+			if gColdCounter != 0:
+				counter = gColdCounter
+				gColdCounter = 0;
 		
-		if gHotCounter != 0:
-			save_send(gHotCounter, 'H');
-			gHotCounter = 0;
-		
+		if counter != 0: 
+			save_send(counter, 'C');
+
+		counter = 0;
+		with hot_counter_lock:
+			if gHotCounter != 0:
+				counter = gHotCounter;
+				gHotCounter = 0;
+		if counter != 0:
+			save_send(counter, 'H');
+			
 		time.sleep(FILE_SAVE_SEND_TIMEOUT);
 
 
@@ -176,11 +189,13 @@ def counter_thread(pin, puk):
 		input_state = GPIO.input(pin)
 		if input_state == False:
 			if pin == PIN_COUNTER_COLD:
-				gColdCounter += 1;
-				#print "Cold counter: %d" % gColdCounter;
+				with cold_counter_lock:
+					gColdCounter += 1;
+					#print "Cold counter: %d" % gColdCounter;
 			else:
-				gHotCounter += 1;
-				#print "Hot counter: %d" % gHotCounter;
+				with hot_counter_lock:
+					gHotCounter += 1;
+					#print "Hot counter: %d" % gHotCounter;
 			
 			while input_state == False:
 				input_state = GPIO.input(pin);
