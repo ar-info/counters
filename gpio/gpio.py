@@ -120,8 +120,8 @@ def save_send(counter, counter_type):
 		return;
 		
 	r = requests.get(report_str);
-	print report_str;
-	print r.status_code;
+	#print report_str;
+	#print r.status_code;
 			
 	if r.status_code != 200:
 		cnt_logger.warning('Send counter to server error. Code is %d. Save to file.', r.status_code)
@@ -177,10 +177,10 @@ def counter_thread(pin, puk):
 		if input_state == False:
 			if pin == PIN_COUNTER_COLD:
 				gColdCounter += 1;
-				print "Cold counter: %d" % gColdCounter;
+				#print "Cold counter: %d" % gColdCounter;
 			else:
 				gHotCounter += 1;
-				print "Hot counter: %d" % gHotCounter;
+				#print "Hot counter: %d" % gHotCounter;
 			
 			while input_state == False:
 				input_state = GPIO.input(pin);
