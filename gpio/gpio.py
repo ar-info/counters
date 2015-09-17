@@ -33,9 +33,6 @@ temp_files_path = "/var/local/counters/";
 gHotCounter = 0;
 gColdCounter = 0;
 
-gOldHotCounter = 0;
-gOldColdCounter = 0;
-
 cold_counter_lock = threading.Lock();
 hot_counter_lock = threading.Lock();
 
@@ -124,8 +121,8 @@ def save_send(counter, counter_type):
 		return;
 		
 	r = requests.get(report_str);
-	#print report_str;
-	#print r.status_code;
+	print report_str;
+	print r.status_code;
 			
 	if r.status_code != 200:
 		cnt_logger.warning('Send counter to server error. Code is %d. Save to file.', r.status_code)
@@ -160,14 +157,27 @@ def save_send_thread():
 
 	while True:
 	
+		cold_counter = 0;
+		hot_counter = 0;
+	
+		cold_counter_lock.acquire();
 		if gColdCounter != 0:
-			save_send(gColdCounter, 'C');
+			cold_counter = gColdCounter;
 			gColdCounter = 0;
+		cold_counter_lock.release();
 
+		if cold_counter != 0:
+			save_send(cold_counter, 'C');
+	
+		hot_counter_lock.acquire();	
 		if gHotCounter != 0:
-			save_send(gHotCounter, 'H');
+			hot_counter = gHotCounter;
 			gHotCounter = 0;
+		hot_counter_lock.release();
 			
+		if hot_counter != 0:
+			save_send(hot_counter, 'H');
+
 		time.sleep(FILE_SAVE_SEND_TIMEOUT);
 
 
@@ -180,9 +190,15 @@ def counter_thread(pin, puk):
 		input_state = GPIO.input(pin)
 		if input_state == False:
 			if pin == PIN_COUNTER_COLD:
+				cold_counter_lock.acquire();
 				gColdCounter += 1;
+				print "Cold counter: %d" % gColdCounter;
+				cold_counter_lock.release();
 			else:
+				hot_counter_lock.acquire();
 				gHotCounter += 1;
+				print "Hot counter: %d" % gHotCounter;
+				hot_counter_lock.release();
 			
 			while input_state == False:
 				input_state = GPIO.input(pin);
