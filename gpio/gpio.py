@@ -17,7 +17,7 @@ import dns.resolver
 import logging
 import logging.handlers
 
-LOG_LEVEL = logging.DEBUG;
+
 
 PIN_COUNTER_HOT  = 13;
 PIN_COUNTER_COLD = 5;
@@ -31,13 +31,9 @@ NUM_FILE_LIMIT_FOR_EMAIL = SEND_EMAIL_TIMEOUT / FILE_SAVE_SEND_TIMEOUT;
 
 temp_files_path = "/var/local/counters/";
 
-#gHotCounter = 0;
-#gColdCounter = 0;
-
-#cold_counter_lock = threading.Lock();
-#hot_counter_lock = threading.Lock();
-
-LOG_FILENAME = '/var/log/counters.log'
+LOG_LEVEL = logging.DEBUG;
+LOG_FILENAME = '/var/log/counters.log';
+cnt_logger = logging.getLogger('counters');
 
 
 class GlobalCounter:
@@ -140,24 +136,23 @@ def save_send(counter, counter_type):
 	time_str = str(time.time());
 
 	if counter_type == 'H':
+		cnt_logger.debug('save_send: Hot counter');
 		report_str = 'http://raevsky.com/counters/report_counter.php?time=' + time_str + '&counter=H&value=' + str(counter);
 		temp_file_name = temp_files_path + 'H' + time_str;	
 	elif counter_type == 'C':
+		cnt_logger.debug('save_send: Cold counter');
 		report_str = 'http://raevsky.com/counters/report_counter.php?time=' + time_str + '&counter=C&value=' + str(counter);
 		temp_file_name = temp_files_path + 'C' + time_str;		
 	else:
+		cnt_logger.debug('save_send: Counter type unrecognized - internal error!');
 		return;
 		
+	cnt_logger.debug('save_send: %s', report_str);
 	r = requests.get(report_str);
-
-	cnt_logger.debug(report_str);
-	cnt_logger.debug('status: %d', r.status_code);
+	cnt_logger.debug('save_send: status: %d', r.status_code);
 	
-#	print report_str;
-#	print r.status_code;
-			
 	if r.status_code != 200:
-		cnt_logger.warning('Send counter to server error. Code is %d. Save to file.', r.status_code)
+		cnt_logger.warning('save_send: Send counter to server error. Code is %d. Save to file.', r.status_code)
 		f = open(temp_file_name, 'w');
 		f.write(report_str);
 		f.close();
@@ -175,21 +170,23 @@ def save_send(counter, counter_type):
 				if r.status_code == 200:
 					os.remove(temp_file_name);
 				else:
-					cnt_logger.warning('Error sending file %s to server. Code is %d', r.status_code);
+					cnt_logger.warning('save_send: Error sending file %s to server. Code is %d', r.status_code);
 							
 				
 	
 	
 def save_send_thread():
 
-	global gColdCounter, gHotCounter;
+	cnt_logger.debug('save_send_thread: Starting save_send_thread');
 
 	if not os.path.exists(temp_files_path):
 		os.makedirs(temp_files_path)
 
 	while True:
 	
+		cnt_logger.debug('save_send_thread: Get cold counter');
 		cold_counter = gColdCounter.InterlockedGetAndExchange(0);
+		cnt_logger.debug('save_send_thread: Get hot counter');
 		hot_counter = gHotCounter.InterlockedGetAndExchange(0);
 	
 		if cold_counter != 0:
@@ -198,6 +195,7 @@ def save_send_thread():
 		if hot_counter != 0:
 			save_send(hot_counter, 'H');
 
+		cnt_logger.debug('save_send_thread: Entering sleep');
 		time.sleep(FILE_SAVE_SEND_TIMEOUT);
 
 
@@ -211,12 +209,9 @@ def counter_thread(pin, puk):
 		if input_state == False:
 			if pin == PIN_COUNTER_COLD:
 				x = gColdCounter.InterlockedIncrement();
-#				print "Cold counter: %d" % x;
 				cnt_logger.debug('Cold counter: %d', x);
-
 			else:
 				x = gHotCounter.InterlockedIncrement();
-#				print "Hot counter: %d" % x;
 				cnt_logger.debug('Hot counter: %d', x);
 			
 			while input_state == False:
@@ -254,7 +249,6 @@ class MyDaemon(daemon):
 		GPIO.setup(PIN_COUNTER_HOT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 		
 		# Set up a specific logger with desired output level
-		cnt_logger = logging.getLogger('counters')
 		cnt_logger.setLevel(LOG_LEVEL)
 		loghandler = logging.handlers.RotatingFileHandler(LOG_FILENAME, maxBytes=32*1024, backupCount=4)
 		logformatter = logging.Formatter(fmt='%(asctime)s  %(message)s', datefmt='%b %d %H:%M:%S')
