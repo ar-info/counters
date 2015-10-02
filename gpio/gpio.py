@@ -158,7 +158,7 @@ def save_send(counter, counter_type):
 		cnt_logger.debug('save_send: status: %d', r.status_code);
 		if r.status_code != 200:
 			http_error = True;
-	except requests.exceptions.RequestException as e::
+	except requests.exceptions.RequestException as e:
 		cnt_logger.debug('save_send: %s', e.message);
 		http_error = True;
 			
