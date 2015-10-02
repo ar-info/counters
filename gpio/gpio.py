@@ -23,6 +23,7 @@ PIN_COUNTER_HOT  = 13;
 PIN_COUNTER_COLD = 5;
 
 FILE_SAVE_SEND_TIMEOUT = 10*60;
+HTTP_REQUEST_TIMEOUT = FILE_SAVE_SEND_TIMEOUT / 20;
 
 SEND_EMAIL_TIMEOUT = 24 * 60 * 60 * 60;
 
@@ -101,8 +102,11 @@ Subject: %s
 	
 def check_internet_alive():
 
-	r1 = requests.get("http://yandex.ru");	
-	r2 = requests.get("http://google.com");
+	try:
+		r1 = requests.get(url="http://yandex.ru", timeout=(HTTP_REQUEST_TIMEOUT, HTTP_REQUEST_TIMEOUT));	
+		r2 = requests.get(url="http://google.com", timeout=(HTTP_REQUEST_TIMEOUT, HTTP_REQUEST_TIMEOUT));
+	except:
+		return False;
 	
 	if (r1.status_code != 200) and (r2.status_code != 200):
 		return False;
@@ -148,10 +152,17 @@ def save_send(counter, counter_type):
 		return;
 		
 	cnt_logger.debug('save_send: %s', report_str);
-	r = requests.get(report_str);
-	cnt_logger.debug('save_send: status: %d', r.status_code);
-	
-	if r.status_code != 200:
+	http_error = False;
+	try:
+		r = requests.get(url=report_str, timeout=(HTTP_REQUEST_TIMEOUT, HTTP_REQUEST_TIMEOUT));
+		cnt_logger.debug('save_send: status: %d', r.status_code);
+		if r.status_code != 200:
+			http_error = True;
+	except requests.exceptions.RequestException as e::
+		cnt_logger.debug('save_send: %s', e.message);
+		http_error = True;
+			
+	if http_error:
 		cnt_logger.warning('save_send: Send counter to server error. Code is %d. Save to file.', r.status_code)
 		f = open(temp_file_name, 'w');
 		f.write(report_str);
