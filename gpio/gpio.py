@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 ### BEGIN INIT INFO
 # Provides:          gpio.py
 # Required-Start:    $remote_fs $syslog
@@ -16,8 +16,6 @@ import smtplib, requests
 import dns.resolver
 import logging
 import logging.handlers
-
-
 
 PIN_COUNTER_HOT  = 13;
 PIN_COUNTER_COLD = 5;
@@ -163,7 +161,7 @@ def save_send(counter, counter_type):
 		http_error = True;
 			
 	if http_error:
-		cnt_logger.warning('save_send: Send counter to server error. Code is %d. Save to file.', r.status_code)
+		cnt_logger.warning('save_send: Send counter to server error. Save to file.')
 		f = open(temp_file_name, 'w');
 		f.write(report_str);
 		f.close();
@@ -195,9 +193,7 @@ def save_send_thread():
 
 	while True:
 	
-		cnt_logger.debug('save_send_thread: Get cold counter');
 		cold_counter = gColdCounter.InterlockedGetAndExchange(0);
-		cnt_logger.debug('save_send_thread: Get hot counter');
 		hot_counter = gHotCounter.InterlockedGetAndExchange(0);
 	
 		if cold_counter != 0:
@@ -206,7 +202,6 @@ def save_send_thread():
 		if hot_counter != 0:
 			save_send(hot_counter, 'H');
 
-		cnt_logger.debug('save_send_thread: Entering sleep');
 		time.sleep(FILE_SAVE_SEND_TIMEOUT);
 
 
@@ -283,9 +278,9 @@ if __name__ == "__main__":
 			elif 'restart' == sys.argv[1]:
 				gpio_daemon.restart()
 			else:
-				print "Unknown command"
+				print ("Unknown command");
 				sys.exit(2)
 			sys.exit(0)
 	else:
-			print "usage: %s start|stop|restart" % sys.argv[0]
+			print ("usage: %s start|stop|restart" % sys.argv[0]);
 			sys.exit(2)
