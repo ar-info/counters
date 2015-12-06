@@ -131,7 +131,24 @@ def email_thread():
 				
 		time.sleep(SEND_EMAIL_TIMEOUT);
 
-		
+	
+def report_string_to_server(report_str):	
+
+	status = True;
+	cnt_logger.debug('report_string_to_server: string: %s', report_str);
+	
+	try:
+		r = requests.get(url=report_str, timeout=(HTTP_REQUEST_TIMEOUT, HTTP_REQUEST_TIMEOUT));
+		cnt_logger.debug('report_string_to_server: status: %d', r.status_code);
+		if r.status_code != 200:
+			cnt_logger.warning('report_string_to_server: status: %d', r.status_code);
+			status = False;
+	except:	
+		cnt_logger.warning('save_send: Requests exception');
+		status = False;
+	
+	return status;
+	
 	
 def save_send(counter, counter_type):
 
@@ -149,18 +166,9 @@ def save_send(counter, counter_type):
 		cnt_logger.debug('save_send: Counter type unrecognized - internal error!');
 		return;
 		
-	cnt_logger.debug('save_send: %s', report_str);
-	http_error = False;
-	try:
-		r = requests.get(url=report_str, timeout=(HTTP_REQUEST_TIMEOUT, HTTP_REQUEST_TIMEOUT));
-		cnt_logger.debug('save_send: status: %d', r.status_code);
-		if r.status_code != 200:
-			http_error = True;
-	except requests.exceptions.RequestException as e:
-		cnt_logger.debug('save_send: %s', e.message);
-		http_error = True;
-			
-	if http_error:
+	status = report_string_to_server(report_str);
+		
+	if not status:
 		cnt_logger.warning('save_send: Send counter to server error. Save to file.')
 		f = open(temp_file_name, 'w');
 		f.write(report_str);
@@ -175,8 +183,8 @@ def save_send(counter, counter_type):
 				f = open(temp_file_name, 'r');
 				report_str = f.readline();
 				f.close();
-				r = requests.get(report_str);
-				if r.status_code == 200:
+				status = report_string_to_server(report_str);
+				if status:
 					os.remove(temp_file_name);
 				else:
 					cnt_logger.warning('save_send: Error sending file %s to server. Code is %d', r.status_code);
