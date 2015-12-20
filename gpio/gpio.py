@@ -187,7 +187,7 @@ def save_send(counter, counter_type):
 				if status:
 					os.remove(temp_file_name);
 				else:
-					cnt_logger.warning('save_send: Error sending file %s to server. Code is %d', r.status_code);
+					cnt_logger.warning('save_send: Error sending file %s to server.', temp_file_name);
 							
 				
 	
