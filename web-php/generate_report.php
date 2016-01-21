@@ -9,8 +9,8 @@ require 'PHPMailerAutoload.php';
 include("/home/u17160/raevsky.com/counters_db_params.inc");
 
 
-$template_path = "template.rtf";
-$report_path = "report.rtf";
+$template_path = "/home/u17160/raevsky.com/www/counters/template.rtf";
+$report_path = "/home/u17160/raevsky.com/www/counters/report.rtf";
 
 
 $re_reportdate = "/(%REPORTDATE%)/i"; 
