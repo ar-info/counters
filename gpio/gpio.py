@@ -12,10 +12,12 @@
 import sys, time, threading, os
 from daemon3x import daemon
 import RPi.GPIO as GPIO
-import smtplib, requests
+import smtplib, urllib.request, urllib.error
 import dns.resolver
 import logging
 import logging.handlers
+import socket
+
 
 PIN_COUNTER_HOT  = 13;
 PIN_COUNTER_COLD = 5;
@@ -101,12 +103,12 @@ Subject: %s
 def check_internet_alive():
 
 	try:
-		r1 = requests.get(url="http://yandex.ru", timeout=(HTTP_REQUEST_TIMEOUT, HTTP_REQUEST_TIMEOUT));	
-		r2 = requests.get(url="http://google.com", timeout=(HTTP_REQUEST_TIMEOUT, HTTP_REQUEST_TIMEOUT));
+		r1 = urllib.request.urlopen('http://yandex.ru', timeout=HTTP_REQUEST_TIMEOUT);	
+		r2 = urllib.request.urlopen('http://google.com', timeout=HTTP_REQUEST_TIMEOUT);
 	except:
 		return False;
 	
-	if (r1.status_code != 200) and (r2.status_code != 200):
+	if (r1.getcode() != 200) and (r2.getcode() != 200):
 		return False;
 	
 	return True;
@@ -138,14 +140,18 @@ def report_string_to_server(report_str):
 	cnt_logger.debug('report_string_to_server: string: %s', report_str);
 	
 	try:
-		r = requests.get(url=report_str, timeout=(HTTP_REQUEST_TIMEOUT, HTTP_REQUEST_TIMEOUT));
-		cnt_logger.debug('report_string_to_server: status: %d', r.status_code);
-		if r.status_code != 200:
+		r = urllib.request.urlopen(report_str, timeout=HTTP_REQUEST_TIMEOUT);
+		cnt_logger.debug('report_string_to_server: status: %d', r.getcode());
+		if r.getcode() != 200:
 			cnt_logger.warning('report_string_to_server: status: %d', r.status_code);
 			status = False;
-	except:	
-		cnt_logger.warning('save_send: Requests exception');
+	except urllib.error.URLError as e:	
+		cnt_logger.warning('save_send: urllib.request exception: %s', e.reason);
 		status = False;
+	except socket.timeout as e:	
+		cnt_logger.warning('save_send: Socket timeout');
+		status = False;
+		
 	
 	return status;
 	
