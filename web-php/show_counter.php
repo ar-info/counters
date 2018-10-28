@@ -21,7 +21,7 @@ if (!$result) {
 
 $last_time_array = mysqli_fetch_array($result, MYSQL_NUM);
 $last_time = $last_time_array[0];
-printf("Last time = %s<br>", $last_time);
+printf("Last verification time = %s<br>", $last_time);
 $result->free();
 
 $request_str = "SELECT * FROM `VERIFICATION` WHERE TIME='" . $last_time . "'";
@@ -103,6 +103,32 @@ $cold_counter = $cold_counter_start_value + 10.0 * $cold_counter_ticks * $cold_m
 $hot_counter = $hot_counter_start_value + 10.0 * $hot_counter_ticks * $hot_multiplier["VALUE"];
 
 printf("<br><br><b>Cold counter: %f<br>Hot counter: %f</b><br>", $cold_counter, $hot_counter);
+
+$request_str = "SELECT max(TIME) FROM `COUNTER_COLD`";
+$result = $mysqli->query($request_str);
+if (!$result) {
+	echo "Error define last date: (" . $mysqli->errno . ") " . $mysqli->error . "<br>";
+	echo "Query string: " . $request_str . "<br>";
+}
+
+$last_time_array = mysqli_fetch_array($result, MYSQL_NUM);
+$last_time = $last_time_array[0];
+printf("<br>Last update time for cold counter = %s<br>", $last_time);
+$result->free();
+
+
+$request_str = "SELECT max(TIME) FROM `COUNTER_HOT`";
+$result = $mysqli->query($request_str);
+if (!$result) {
+	echo "Error define last date: (" . $mysqli->errno . ") " . $mysqli->error . "<br>";
+	echo "Query string: " . $request_str . "<br>";
+}
+
+$last_time_array = mysqli_fetch_array($result, MYSQL_NUM);
+$last_time = $last_time_array[0];
+printf("Last update time for hot counter = %s<br>", $last_time);
+$result->free();
+
 
 mysqli_close($mysqli);
 ?>
