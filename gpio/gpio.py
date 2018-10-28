@@ -17,6 +17,7 @@ import dns.resolver
 import logging
 import logging.handlers
 import socket
+import http.client
 
 
 PIN_COUNTER_HOT  = 13
@@ -162,10 +163,13 @@ def report_string_to_server(report_str):
 			cnt_logger.warning('report_string_to_server: status: %d', r.status_code)
 			status = False
 	except urllib.error.URLError as e:	
-		cnt_logger.warning('save_send: urllib.request exception: %s', e.reason)
+		cnt_logger.warning('report_string_to_server: urllib.request exception: %s', e.reason)
 		status = False
+    except http.client.HTTPException as e:	
+        cnt_logger.warning("report_string_to_server: HTTP exception: %s", e.reason)
+        status = False
 	except socket.timeout as e:	
-		cnt_logger.warning('save_send: Socket timeout')
+		cnt_logger.warning('report_string_to_server: Socket timeout')
 		status = False
 		
 	
@@ -185,7 +189,7 @@ def save_send(counter, counter_type):
 		report_str = 'http://raevsky.com/counters/report_counter.php?time=' + time_str + '&counter=C&value=' + str(counter)
 		temp_file_name = temp_files_path + 'C' + time_str	
 	else:
-		cnt_logger.debug('save_send: Counter type unrecognized - internal error!')
+		cnt_logger.warning('save_send: Counter type unrecognized - internal error!')
 		return
 		
 	status = report_string_to_server(report_str)
@@ -295,8 +299,6 @@ class MyDaemon(daemon):
 		
 		sl = StreamToLogger(cnt_logger, logging.ERROR)
 		sys.stderr = sl
-		
-		p = 5 / 0
 		
 		daemon.start(self)
 
