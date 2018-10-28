@@ -76,7 +76,9 @@ class StreamToLogger(object):
 		for line in buf.rstrip().splitlines():
 			self.logger.log(self.log_level, line.rstrip())
 
-		 
+	def flush(self):
+		self.logger.handlers[0].flush()
+			
 	
 gColdCounter = GlobalCounter()
 gHotCounter = GlobalCounter()
@@ -165,9 +167,9 @@ def report_string_to_server(report_str):
 	except urllib.error.URLError as e:	
 		cnt_logger.warning('report_string_to_server: urllib.request exception: %s', e.reason)
 		status = False
-    except http.client.HTTPException as e:	
-        cnt_logger.warning("report_string_to_server: HTTP exception: %s", e.reason)
-        status = False
+	except http.client.HTTPException as e:	
+		cnt_logger.warning("report_string_to_server: HTTP exception: %s", e.reason)
+		status = False
 	except socket.timeout as e:	
 		cnt_logger.warning('report_string_to_server: Socket timeout')
 		status = False
@@ -297,10 +299,11 @@ class MyDaemon(daemon):
 
 		cnt_logger.info('Start daemon')
 		
+		daemon.start(self)
+
+		print ("redirect ...")
 		sl = StreamToLogger(cnt_logger, logging.ERROR)
 		sys.stderr = sl
-		
-		daemon.start(self)
 
 			
 			
