@@ -17,12 +17,17 @@ import dns.resolver
 import logging
 import logging.handlers
 import socket
+import random
+import http.client
 
 
 PIN_COUNTER_HOT  = 13
 PIN_COUNTER_COLD = 5
 
-FILE_SAVE_SEND_TIMEOUT = 10*60
+#FILE_SAVE_SEND_TIMEOUT = 10*60
+
+# for test only
+FILE_SAVE_SEND_TIMEOUT = 10
 HTTP_REQUEST_TIMEOUT = FILE_SAVE_SEND_TIMEOUT / 20
 
 SEND_EMAIL_TIMEOUT = 24 * 60 * 60 * 60
@@ -60,22 +65,6 @@ class GlobalCounter:
 			self.m_Lock.release()
 			
 		return ret_value
-	
-	
-class StreamToLogger(object):
-	"""
-	Fake file-like stream object that redirects writes to a logger instance.
-	"""
-	def __init__(self, logger, log_level=logging.INFO):
-		self.logger = logger
-		self.log_level = log_level
-		self.linebuf = ''
-
-	def write(self, buf):
-		for line in buf.rstrip().splitlines():
-			self.logger.log(self.log_level, line.rstrip())
-
-		 
 	
 gColdCounter = GlobalCounter()
 gHotCounter = GlobalCounter()
@@ -178,11 +167,11 @@ def save_send(counter, counter_type):
 
 	if counter_type == 'H':
 		cnt_logger.debug('save_send: Hot counter')
-		report_str = 'http://raevsky.com/counters/report_counter.php?time=' + time_str + '&counter=H&value=' + str(counter)
+		report_str = 'http://raevsky.com/counters/report_counter_test.php?time=' + time_str + '&counter=H&value=' + str(counter)
 		temp_file_name = temp_files_path + 'H' + time_str	
 	elif counter_type == 'C':
 		cnt_logger.debug('save_send: Cold counter')
-		report_str = 'http://raevsky.com/counters/report_counter.php?time=' + time_str + '&counter=C&value=' + str(counter)
+		report_str = 'http://raevsky.com/counters/report_counter_test.php?time=' + time_str + '&counter=C&value=' + str(counter)
 		temp_file_name = temp_files_path + 'C' + time_str	
 	else:
 		cnt_logger.debug('save_send: Counter type unrecognized - internal error!')
@@ -240,24 +229,8 @@ def counter_thread(pin, puk):
 
 	global gColdCounter, gHotCounter
 
-	while True:
-		input_state = GPIO.input(pin)
-		if input_state == False:
-			if pin == PIN_COUNTER_COLD:
-				x = gColdCounter.InterlockedIncrement()
-				cnt_logger.debug('Cold counter: %d', x)
-			else:
-				x = gHotCounter.InterlockedIncrement()
-				cnt_logger.debug('Hot counter: %d', x)
 			
-			while input_state == False:
-				input_state = GPIO.input(pin)
-				if input_state == True:
-					time.sleep(0.5)
-					input_state = GPIO.input(pin)
-				time.sleep(0.2)
-			
-		time.sleep(0.5)
+	time.sleep(0.5)
 
 
 class MyDaemon(daemon):
@@ -293,15 +266,45 @@ class MyDaemon(daemon):
 
 		cnt_logger.info('Start daemon')
 		
-		sl = StreamToLogger(cnt_logger, logging.ERROR)
-		sys.stderr = sl
-		
-		p = 5 / 0
-		
 		daemon.start(self)
 
+
+def report_string_to_server_test(report_str):	
+
+    status = True
+    print("report_string_to_server: string: {}".format(report_str))
+	
+    try:
+        r = urllib.request.urlopen(report_str, timeout=HTTP_REQUEST_TIMEOUT)
+        print("report_string_to_server: status: {}".format(r.getcode()))
+        if r.getcode() != 200:
+            print("report_string_to_server: status: {}".format(r.status_code))
+            status = False
+    except urllib.error.URLError as e:	
+        print("report_string_to_server: urllib.request exception: {}".format(e.reason))
+        status = False
+    except http.client.HTTPException as e:	
+        print("report_string_to_server: HTTP exception: {}".format(e.reason))
+        status = False
+    except socket.timeout as e:	
+        print("report_string_to_server: Socket timeout")
+        status = False
+#    except Exception as e:
+#        print("report_string_to_server: Unknown exception")
+#        status = False
+
+    return status
+
+
+def url_test():
+    while True:
+        counter = 5
+       	time_str = str(time.time())
+        report_str = 'http://raevsky.com/counters/report_counter_test.php?time=' + time_str + '&counter=C&value=' + str(counter)
+        report_string_to_server_test(report_str)		
 			
-			
+
+
 if __name__ == "__main__":
 		
 	gpio_daemon = MyDaemon('/tmp/gpio-daemon.pid')
@@ -317,5 +320,6 @@ if __name__ == "__main__":
 				sys.exit(2)
 			sys.exit(0)
 	else:
-			print ("usage: %s start|stop|restart" % sys.argv[0])
-			sys.exit(2)
+            url_test()
+            print ("usage: %s start|stop|restart" % sys.argv[0])
+            sys.exit(2)

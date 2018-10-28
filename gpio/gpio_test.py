@@ -61,22 +61,6 @@ class GlobalCounter:
 			
 		return ret_value
 	
-	
-class StreamToLogger(object):
-	"""
-	Fake file-like stream object that redirects writes to a logger instance.
-	"""
-	def __init__(self, logger, log_level=logging.INFO):
-		self.logger = logger
-		self.log_level = log_level
-		self.linebuf = ''
-
-	def write(self, buf):
-		for line in buf.rstrip().splitlines():
-			self.logger.log(self.log_level, line.rstrip())
-
-		 
-	
 gColdCounter = GlobalCounter()
 gHotCounter = GlobalCounter()
 		
@@ -178,11 +162,11 @@ def save_send(counter, counter_type):
 
 	if counter_type == 'H':
 		cnt_logger.debug('save_send: Hot counter')
-		report_str = 'http://raevsky.com/counters/report_counter.php?time=' + time_str + '&counter=H&value=' + str(counter)
+		report_str = 'http://raevsky.com/counters/report_counter_test.php?time=' + time_str + '&counter=H&value=' + str(counter)
 		temp_file_name = temp_files_path + 'H' + time_str	
 	elif counter_type == 'C':
 		cnt_logger.debug('save_send: Cold counter')
-		report_str = 'http://raevsky.com/counters/report_counter.php?time=' + time_str + '&counter=C&value=' + str(counter)
+		report_str = 'http://raevsky.com/counters/report_counter_test.php?time=' + time_str + '&counter=C&value=' + str(counter)
 		temp_file_name = temp_files_path + 'C' + time_str	
 	else:
 		cnt_logger.debug('save_send: Counter type unrecognized - internal error!')
@@ -292,11 +276,6 @@ class MyDaemon(daemon):
 		cnt_logger.addHandler(loghandler)
 
 		cnt_logger.info('Start daemon')
-		
-		sl = StreamToLogger(cnt_logger, logging.ERROR)
-		sys.stderr = sl
-		
-		p = 5 / 0
 		
 		daemon.start(self)
 
