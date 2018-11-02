@@ -23,8 +23,8 @@ import http.client
 PIN_COUNTER_HOT  = 13
 PIN_COUNTER_COLD = 5
 
-#FILE_SAVE_SEND_TIMEOUT = 10*60
-FILE_SAVE_SEND_TIMEOUT = 10
+FILE_SAVE_SEND_TIMEOUT = 10*60
+#FILE_SAVE_SEND_TIMEOUT = 10
 HTTP_REQUEST_TIMEOUT = FILE_SAVE_SEND_TIMEOUT / 20
 
 SEND_EMAIL_TIMEOUT = 24 * 60 * 60 * 60
@@ -171,10 +171,10 @@ def report_string_to_server(report_str):
 		cnt_logger.warning('report_string_to_server: HTTPError: %s', e.code)
 
 	except urllib.error.URLError as e:	
-		cnt_logger.warning('report_string_to_server: urllib.request exception: %s', e.reason)
+		cnt_logger.warning('report_string_to_server: URLError exception: %s', e.reason)
 		
 	except http.client.HTTPException as e:	
-		cnt_logger.warning("report_string_to_server: HTTP exception: %s", e.reason)
+		cnt_logger.warning("report_string_to_server: HTTPException: %s", e.reason)
 		
 	except socket.timeout as e:	
 		cnt_logger.warning('report_string_to_server: Socket timeout')
