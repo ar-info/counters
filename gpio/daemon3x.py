@@ -46,7 +46,11 @@ class daemon:
 
 		os.dup2(si.fileno(), sys.stdin.fileno())
 		os.dup2(so.fileno(), sys.stdout.fileno())
-		os.dup2(se.fileno(), sys.stderr.fileno())
+	
+		if self.m_stderr_logger is not None:
+			sys.stderr = self.m_stderr_logger
+		else:
+			os.dup2(se.fileno(), sys.stderr.fileno())
 	
 		# write pidfile
 		atexit.register(self.delpid)
@@ -58,9 +62,11 @@ class daemon:
 	def delpid(self):
 		os.remove(self.pidfile)
 
-	def start(self):
+	def start(self, stderr_logger=None):
 		"""Start the daemon."""
 
+		self.m_stderr_logger = stderr_logger
+		
 		# Check for a pidfile to see if the daemon already runs
 		try:
 			with open(self.pidfile,'r') as pf:

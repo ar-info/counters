@@ -271,29 +271,33 @@ class MyDaemon(daemon):
 
 def report_string_to_server_test(report_str):	
 
-    status = True
-    print("report_string_to_server: string: {}".format(report_str))
+	status = True
+	print("report_string_to_server: string: {}".format(report_str))
 	
-    try:
-        r = urllib.request.urlopen(report_str, timeout=HTTP_REQUEST_TIMEOUT)
-        print("report_string_to_server: status: {}".format(r.getcode()))
-        if r.getcode() != 200:
-            print("report_string_to_server: status: {}".format(r.status_code))
-            status = False
-    except urllib.error.URLError as e:	
-        print("report_string_to_server: urllib.request exception: {}".format(e.reason))
-        status = False
-    except http.client.HTTPException as e:	
-        print("report_string_to_server: HTTP exception: {}".format(e.reason))
-        status = False
-    except socket.timeout as e:	
-        print("report_string_to_server: Socket timeout")
-        status = False
-#    except Exception as e:
-#        print("report_string_to_server: Unknown exception")
-#        status = False
+	try:
+		r = urllib.request.urlopen(report_str, timeout=HTTP_REQUEST_TIMEOUT)
+		print("report_string_to_server: status: {}".format(r.getcode()))
+		if r.getcode() != 200:
+			print("report_string_to_server: error status: {}".format(r.getcode()))
+			status = False
+	except urllib.error.HTTPError as e:			
+		print('The server couldn\'t fulfill the request.')
+		print('Error code: ', e.code)			
+		status = False
+	except urllib.error.URLError as e:	
+		print("report_string_to_server: URLerror exception: {}".format(e.reason))
+		status = False
+	except http.client.HTTPException as e:	
+		print("report_string_to_server: HTTPexception: {}".format(e.reason))
+		status = False
+	except socket.timeout as e:	
+		print("report_string_to_server: Socket timeout")
+		status = False
+#	except Exception as e:
+#		print("report_string_to_server: Unknown exception {}".format(e.reason))
+#		status = False
 
-    return status
+	return status
 
 
 def url_test():
